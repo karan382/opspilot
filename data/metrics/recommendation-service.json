@@ -1,0 +1,50 @@
+[
+  {
+    "timestamp": "2026-08-18T10:10:00Z",
+    "service": "recommendation-service",
+    "latency_ms": 1840,
+    "db_active_connections": 20,
+    "db_max_connections": 50,
+    "error_rate": 0.1
+  },
+  {
+    "timestamp": "2026-08-18T10:16:00Z",
+    "service": "recommendation-service",
+    "latency_ms": 4210,
+    "db_active_connections": 35,
+    "db_max_connections": 50,
+    "error_rate": 1.2
+  },
+  {
+    "timestamp": "2026-08-18T10:20:00Z",
+    "service": "recommendation-service",
+    "latency_ms": 6100,
+    "db_active_connections": 48,
+    "db_max_connections": 50,
+    "error_rate": 3.8
+  },
+  {
+    "timestamp": "2026-08-18T10:25:00Z",
+    "service": "recommendation-service",
+    "latency_ms": 8000,
+    "db_active_connections": 50,
+    "db_max_connections": 50,
+    "error_rate": 7.4
+  },
+  {
+    "timestamp": "2026-08-18T10:31:00Z",
+    "service": "recommendation-service",
+    "latency_ms": 8000,
+    "db_active_connections": 50,
+    "db_max_connections": 50,
+    "error_rate": 8.1
+  },
+  {
+    "timestamp": "2026-08-18T10:50:00Z",
+    "service": "recommendation-service",
+    "latency_ms": 1910,
+    "db_active_connections": 18,
+    "db_max_connections": 50,
+    "error_rate": 0.1
+  }
+]

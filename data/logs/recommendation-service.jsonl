@@ -1,0 +1,8 @@
+{"timestamp":"2026-08-18T10:10:00Z","level":"INFO","service":"recommendation-service","message":"Recommendation request processed","latency_ms":1840}
+{"timestamp":"2026-08-18T10:14:00Z","level":"INFO","service":"recommendation-service","message":"Deployment completed","version":"v2.4.0"}
+{"timestamp":"2026-08-18T10:16:00Z","level":"WARN","service":"recommendation-service","message":"Recommendation latency above threshold","latency_ms":4210}
+{"timestamp":"2026-08-18T10:20:00Z","level":"WARN","service":"recommendation-service","message":"Database connection pool utilization high","active_connections":48,"max_connections":50}
+{"timestamp":"2026-08-18T10:25:00Z","level":"ERROR","service":"recommendation-service","message":"Request timed out while waiting for database connection","timeout_ms":8000}
+{"timestamp":"2026-08-18T10:31:00Z","level":"ERROR","service":"recommendation-service","message":"Database connection acquisition timeout","active_connections":50,"max_connections":50}
+{"timestamp":"2026-08-18T10:45:00Z","level":"INFO","service":"recommendation-service","message":"Connection pool configuration rolled back","version":"v2.3.9"}
+{"timestamp":"2026-08-18T10:50:00Z","level":"INFO","service":"recommendation-service","message":"Recommendation latency returned to normal","latency_ms":1910}

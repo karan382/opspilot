@@ -1,0 +1,44 @@
+[
+  {
+    "incident_id": "INC-001",
+    "service": "recommendation-service",
+    "severity": "P1",
+    "title": "Recommendation latency increased after deployment",
+    "description": "Recommendation API latency increased from approximately 2 seconds to 8 seconds shortly after a new deployment.",
+    "started_at": "2026-08-18T10:15:00Z",
+    "resolved_at": "2026-08-18T11:02:00Z",
+    "symptoms": [
+      "API latency increased significantly",
+      "CPU utilization increased",
+      "Request timeout rate increased"
+    ]
+  },
+  {
+    "incident_id": "INC-002",
+    "service": "event-consumer",
+    "severity": "P2",
+    "title": "Kafka consumer processing lag",
+    "description": "Kafka consumer lag increased continuously, causing delayed processing of user events.",
+    "started_at": "2026-08-21T14:20:00Z",
+    "resolved_at": "2026-08-21T15:10:00Z",
+    "symptoms": [
+      "Consumer lag increased",
+      "Message processing latency increased",
+      "Kafka partitions remained healthy"
+    ]
+  },
+  {
+    "incident_id": "INC-003",
+    "service": "data-pipeline",
+    "severity": "P2",
+    "title": "Airflow DAG failed during BigQuery load",
+    "description": "A scheduled production DAG failed while loading transformed records into BigQuery.",
+    "started_at": "2026-08-25T03:00:00Z",
+    "resolved_at": "2026-08-25T03:42:00Z",
+    "symptoms": [
+      "Airflow task entered failed state",
+      "BigQuery load operation failed",
+      "Downstream tasks were blocked"
+    ]
+  }
+]

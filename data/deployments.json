@@ -1,0 +1,16 @@
+[
+  {
+    "deployment_id": "DEP-001",
+    "service": "recommendation-service",
+    "version": "v2.4.0",
+    "deployed_at": "2026-08-18T10:14:00Z",
+    "deployed_by": "engineering",
+    "changes": [
+      "Updated database connection pool configuration",
+      "Increased maximum request concurrency"
+    ],
+    "status": "rolled_back",
+    "rollback_version": "v2.3.9",
+    "rolled_back_at": "2026-08-18T10:45:00Z"
+  }
+]
