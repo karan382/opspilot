@@ -40,6 +40,9 @@ export default function Home() {
   const [investigationStatus, setInvestigationStatus] = useState<string | null>(
     null
   );
+  const [investigationTools, setInvestigationTools] = useState<
+    Record<string, string[]>
+  >({});
   const [reports, setReports] = useState<
     Record<string, InvestigationReport>
   >({});
@@ -74,10 +77,13 @@ export default function Home() {
     switch (severity) {
       case "P1":
         return "bg-red-500/10 text-red-400 border-red-500/20";
+
       case "P2":
         return "bg-orange-500/10 text-orange-400 border-orange-500/20";
+
       case "P3":
         return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
+
       default:
         return "bg-slate-500/10 text-slate-400 border-slate-500/20";
     }
@@ -112,6 +118,25 @@ export default function Home() {
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
   };
 
+  const getToolLabel = (tool: string) => {
+    switch (tool) {
+      case "search_logs":
+        return "Application logs checked";
+
+      case "query_metrics":
+        return "Service metrics checked";
+
+      case "search_deployments":
+        return "Deployment history checked";
+
+      case "search_knowledge":
+        return "Knowledge base searched";
+
+      default:
+        return tool;
+    }
+  };
+
   const getInvestigationStatusText = (incidentId: string) => {
     if (investigating !== incidentId) {
       return null;
@@ -140,19 +165,33 @@ export default function Home() {
   };
 
   const investigateIncident = async (incident: Incident) => {
-    setInvestigating(incident.incident_id);
+    const incidentId = incident.incident_id;
+
+    setInvestigating(incidentId);
     setInvestigationStatus("Starting investigation...");
     setError(null);
 
-    // Open the report panel immediately when investigation starts.
+    // Start each investigation with a clean report and clean tool activity.
+    setReports((current) => {
+      const next = { ...current };
+      delete next[incidentId];
+      return next;
+    });
+
+    setInvestigationTools((current) => ({
+      ...current,
+      [incidentId]: [],
+    }));
+
+    // Open the investigation panel immediately.
     setExpandedReports((current) => ({
       ...current,
-      [incident.incident_id]: true,
+      [incidentId]: true,
     }));
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/v1/investigations/${incident.incident_id}/stream`,
+        `http://127.0.0.1:8000/api/v1/investigations/${incidentId}/stream`,
         {
           method: "POST",
         }
@@ -189,19 +228,25 @@ export default function Home() {
 
           if (event.type === "status") {
             setInvestigationStatus(event.status);
-          }
-
-          if (event.type === "report") {
+          } else if (event.type === "tool") {
+            setInvestigationTools((current) => ({
+              ...current,
+              [incidentId]: [
+                ...(current[incidentId] ?? []),
+                event.tool,
+              ],
+            }));
+          } else if (event.type === "report") {
             setInvestigationStatus("completed");
 
             setReports((current) => ({
               ...current,
-              [incident.incident_id]: event.report,
+              [incidentId]: event.report,
             }));
 
             setExpandedReports((current) => ({
               ...current,
-              [incident.incident_id]: true,
+              [incidentId]: true,
             }));
           }
         }
@@ -271,6 +316,9 @@ export default function Home() {
 
               const isExpanded =
                 expandedReports[incident.incident_id] ?? false;
+
+              const tools =
+                investigationTools[incident.incident_id] ?? [];
 
               return (
                 <article
@@ -363,7 +411,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Investigation Report */}
+                  {/* Investigation Report / Live Investigation */}
                   {(isInvestigating || (hasReport && isExpanded)) && (
                     <div className="border-t border-slate-800 bg-slate-950/40 px-5 py-6">
                       {/* Report Header */}
@@ -398,28 +446,59 @@ export default function Home() {
                         </span>
                       </div>
 
-                      {/* Live Investigation State */}
-                      {isInvestigating && !report && (
+                      {/* Investigation Activity */}
+                      {(isInvestigating || tools.length > 0) && (
                         <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-                          <div className="flex items-center gap-3">
-                            <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-blue-400" />
+                          {isInvestigating && (
+                            <div className="flex items-center gap-3">
+                              <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-blue-400" />
 
-                            <p className="text-sm font-medium text-slate-300">
-                              {investigationStatus ===
-                              "collecting_evidence"
-                                ? "OpsPilot is collecting logs, metrics, deployments, and relevant knowledge..."
-                                : investigationStatus ===
-                                    "analyzing_evidence"
-                                  ? "OpsPilot is analyzing the collected evidence and determining the likely root cause..."
-                                  : "OpsPilot is starting the investigation..."}
+                              <p className="text-sm font-medium text-slate-300">
+                                {investigationStatus ===
+                                "collecting_evidence"
+                                  ? "OpsPilot is collecting logs, metrics, deployments, and relevant knowledge..."
+                                  : investigationStatus ===
+                                      "analyzing_evidence"
+                                    ? "OpsPilot is analyzing the collected evidence and determining the likely root cause..."
+                                    : "OpsPilot is starting the investigation..."}
+                              </p>
+                            </div>
+                          )}
+
+                          {tools.length > 0 && (
+                            <div
+                              className={
+                                isInvestigating
+                                  ? "mt-4 space-y-2"
+                                  : "space-y-2"
+                              }
+                            >
+                              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                                Investigation Activity
+                              </p>
+
+                              {tools.map((tool, index) => (
+                                <div
+                                  key={`${tool}-${index}`}
+                                  className="flex items-center gap-2 text-sm text-slate-400"
+                                >
+                                  <span className="text-emerald-400">
+                                    ✓
+                                  </span>
+
+                                  <span>{getToolLabel(tool)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {isInvestigating && (
+                            <p className="mt-3 text-xs leading-5 text-slate-500">
+                              The report will appear here once the
+                              investigation has collected enough evidence and
+                              completed its analysis.
                             </p>
-                          </div>
-
-                          <p className="mt-3 text-xs leading-5 text-slate-500">
-                            The report will appear here once the investigation
-                            has collected enough evidence and completed its
-                            analysis.
-                          </p>
+                          )}
                         </div>
                       )}
 

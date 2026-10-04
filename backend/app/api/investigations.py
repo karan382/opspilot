@@ -54,10 +54,18 @@ def investigation_event_stream(initial_state):
                     }) + "\n"
 
         elif "tools" in event:
-            yield json.dumps({
-                "type": "status",
-                "status": "collecting_evidence",
-            }) + "\n"
+            tools_data = event["tools"]
+            messages = tools_data.get("messages", [])
+
+            for message in messages:
+                tool_name = getattr(message, "name", None)
+
+                if tool_name:
+                    yield json.dumps({
+                        "type": "tool",
+                        "tool": tool_name,
+                        "status": "completed",
+                    }) + "\n"
 
         elif "report" in event:
             report = event["report"]["report"]
