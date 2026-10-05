@@ -34,11 +34,7 @@ def search_logs(service: str, keyword: str | None = None) -> list[dict]:
                 level=data["level"],
                 service=data["service"],
                 message=data["message"],
-                metadata={
-                    key: value
-                    for key, value in data.items()
-                    if key not in {"timestamp", "level", "service", "message"}
-                },
+                metadata=data.get("metadata", {}),
             )
 
             if keyword:

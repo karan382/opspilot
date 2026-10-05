@@ -6,7 +6,7 @@ from langchain_core.messages import HumanMessage
 from app.agents.graph import graph
 
 
-INCIDENT_ID = "INC-001"
+INCIDENT_ID = "INC-004"
 INCIDENTS_FILE = Path("data/incidents.json")
 
 

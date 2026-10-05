@@ -3,9 +3,12 @@ from pydantic import BaseModel, Field
 
 class Evidence(BaseModel):
     source: str
+    source_type: str
     description: str
     timestamp: str | None = None
     observation: str | None = None
+    service: str | None = None
+    chunk_index: int | None = None
 
 
 class RootCause(BaseModel):

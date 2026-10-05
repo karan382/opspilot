@@ -1,0 +1,50 @@
+[
+  {
+    "timestamp": "2026-08-22T14:05:00Z",
+    "service": "recommendation-cache-service",
+    "redis_latency_ms": 8,
+    "cache_hit_rate": 0.94,
+    "db_queries_per_second": 82,
+    "api_latency_ms": 1900
+  },
+  {
+    "timestamp": "2026-08-22T14:10:00Z",
+    "service": "recommendation-cache-service",
+    "redis_latency_ms": 185,
+    "cache_hit_rate": 0.91,
+    "db_queries_per_second": 105,
+    "api_latency_ms": 2600
+  },
+  {
+    "timestamp": "2026-08-22T14:25:00Z",
+    "service": "recommendation-cache-service",
+    "redis_latency_ms": 420,
+    "cache_hit_rate": 0.65,
+    "db_queries_per_second": 160,
+    "api_latency_ms": 5200
+  },
+  {
+    "timestamp": "2026-08-22T14:32:00Z",
+    "service": "recommendation-cache-service",
+    "redis_latency_ms": 1000,
+    "cache_hit_rate": 0.58,
+    "db_queries_per_second": 185,
+    "api_latency_ms": 7800
+  },
+  {
+    "timestamp": "2026-08-22T14:50:00Z",
+    "service": "recommendation-cache-service",
+    "redis_latency_ms": 12,
+    "cache_hit_rate": 0.93,
+    "db_queries_per_second": 88,
+    "api_latency_ms": 2100
+  },
+  {
+    "timestamp": "2026-08-22T15:05:00Z",
+    "service": "recommendation-cache-service",
+    "redis_latency_ms": 9,
+    "cache_hit_rate": 0.95,
+    "db_queries_per_second": 80,
+    "api_latency_ms": 1900
+  }
+]

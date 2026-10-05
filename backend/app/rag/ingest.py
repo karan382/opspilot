@@ -4,7 +4,6 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
-from qdrant_client import QdrantClient
 
 from app.core.config import GOOGLE_API_KEY
 
@@ -29,6 +28,8 @@ def load_documents() -> list[Document]:
                             "recommendation-service-runbook.md",
                             "database-connection-pooling.md",
                         }
+                        else "recommendation-cache-service"
+                        if file_path.name == "redis-cache-runbook.md"
                         else "global"
                     ),
                 },
@@ -51,12 +52,13 @@ def ingest_documents() -> None:
 
     chunks = splitter.split_documents(documents)
 
+    for index, chunk in enumerate(chunks):
+        chunk.metadata["chunk_index"] = index
+
     embeddings = GoogleGenerativeAIEmbeddings(
         model="gemini-embedding-001",
         google_api_key=GOOGLE_API_KEY,
     )
-
-    client = QdrantClient(url=QDRANT_URL)
 
     QdrantVectorStore.from_documents(
         documents=chunks,

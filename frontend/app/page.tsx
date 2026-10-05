@@ -20,9 +20,12 @@ interface InvestigationReport {
   timeline: string[];
   evidence: {
     source: string;
+    source_type: string;
     description: string;
     timestamp: string | null;
     observation: string | null;
+    service: string | null;
+    chunk_index: number | null;
   }[];
   root_cause: {
     hypothesis: string;
@@ -567,15 +570,36 @@ export default function Home() {
                                   className="rounded-xl border border-slate-800 bg-slate-900/60 p-5"
                                 >
                                   <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <span className="rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-slate-300">
-                                      {formatSource(item.source)}
-                                    </span>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-slate-300">
+                                        {item.source_type}
+                                      </span>
+
+                                      <span className="text-xs text-slate-500">
+                                        {item.source}
+                                      </span>
+                                    </div>
 
                                     {item.timestamp && (
                                       <span className="text-xs text-slate-500">
                                         {item.timestamp}
                                       </span>
                                     )}
+                                  </div>
+
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {item.service && (
+                                      <span className="rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-400">
+                                        Service: {item.service}
+                                      </span>
+                                    )}
+
+                                    {item.chunk_index !== null &&
+                                      item.chunk_index !== undefined && (
+                                        <span className="rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-400">
+                                          Knowledge chunk: {item.chunk_index}
+                                        </span>
+                                      )}
                                   </div>
 
                                   {item.observation && (

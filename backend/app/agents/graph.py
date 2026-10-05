@@ -133,6 +133,11 @@ STRICT RULES:
 - "description" should explain why the evidence is relevant to the investigation.
 - "observation" should contain only the concrete factual observation extracted from the source, including exact values or wording when available.
 - For every evidence item, provide a concise observation containing the exact factual signal from the source (for example, metric values, log message, deployment change, or document statement).
+- For each evidence item, set source_type to exactly one of: "log", "metric", "deployment", or "knowledge".
+- Preserve the source, service, and chunk_index metadata exactly as provided by the investigation tools.
+- For log, metric, and deployment evidence, set chunk_index to null.
+- For knowledge evidence, use the retrieved knowledge result's source, service, and chunk_index values.
+- Do not invent or infer chunk_index values.
 - Do not describe an event as "immediate", "instant", "direct", or "immediately following" unless the collected evidence explicitly supports that temporal relationship. Use the actual observed timestamps instead.
 - Do not attribute causality to one specific change when the evidence only establishes that multiple changes occurred together. State the supported relationship and identify the unresolved causal mechanism as an uncertainty.
 """

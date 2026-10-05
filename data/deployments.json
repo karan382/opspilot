@@ -12,5 +12,19 @@
     "status": "rolled_back",
     "rollback_version": "v2.3.9",
     "rolled_back_at": "2026-08-18T10:45:00Z"
+  },
+  {
+    "deployment_id": "DEP-002",
+    "service": "recommendation-cache-service",
+    "version": "v3.1.0",
+    "deployed_at": "2026-08-22T14:08:00Z",
+    "deployed_by": "engineering",
+    "changes": [
+      "Enabled Redis compression",
+      "Increased Redis request batch size"
+    ],
+    "status": "rolled_back",
+    "rollback_version": "v3.0.4",
+    "rolled_back_at": "2026-08-22T14:42:00Z"
   }
 ]

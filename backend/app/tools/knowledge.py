@@ -54,6 +54,8 @@ def search_knowledge(
     return [
         {
             "source": result.metadata.get("source"),
+            "service": result.metadata.get("service"),
+            "chunk_index": result.metadata.get("chunk_index"),
             "content": result.page_content,
         }
         for result in results
