@@ -13,20 +13,22 @@ interface Incident {
   symptoms: string[];
 }
 
+interface Evidence {
+  source: string;
+  source_type: string;
+  description: string;
+  timestamp: string | null;
+  observation: string | null;
+  service: string | null;
+  chunk_index: number | null;
+}
+
 interface InvestigationReport {
   status: string;
   incident_id: string | null;
   summary: string;
   timeline: string[];
-  evidence: {
-    source: string;
-    source_type: string;
-    description: string;
-    timestamp: string | null;
-    observation: string | null;
-    service: string | null;
-    chunk_index: number | null;
-  }[];
+  evidence: Evidence[];
   root_cause: {
     hypothesis: string;
     confidence: number;
@@ -35,6 +37,18 @@ interface InvestigationReport {
   };
   recommendations: string[];
   uncertainties: string[];
+}
+
+interface InvestigationHistoryItem {
+  id: number;
+  incident_id: string;
+  status: string;
+  started_at: string;
+  completed_at: string | null;
+  summary: string | null;
+  confidence: number | null;
+  claim_level: string | null;
+  evidence: Evidence[];
 }
 
 export default function Home() {
@@ -46,6 +60,9 @@ export default function Home() {
   const [investigationTools, setInvestigationTools] = useState<
     Record<string, string[]>
   >({});
+  const [investigationHistory, setInvestigationHistory] = useState<
+    InvestigationHistoryItem[]
+  >([]);
   const [reports, setReports] = useState<
     Record<string, InvestigationReport>
   >({});
@@ -67,6 +84,31 @@ export default function Home() {
 
         const data = await response.json();
         setIncidents(data);
+
+        const historyResults = await Promise.all(
+          data.map(async (incident: Incident) => {
+            try {
+              const historyResponse = await fetch(
+                `http://127.0.0.1:8000/api/v1/investigations/${incident.incident_id}/history`
+              );
+
+              if (!historyResponse.ok) {
+                return [];
+              }
+
+              const historyData = await historyResponse.json();
+              return historyData.investigations ?? [];
+            } catch (historyError) {
+              console.error(
+                `Failed to fetch investigation history for ${incident.incident_id}:`,
+                historyError
+              );
+              return [];
+            }
+          })
+        );
+
+        setInvestigationHistory(historyResults.flat());
       } catch (error) {
         console.error("Failed to fetch incidents:", error);
         setError("Unable to load production incidents.");
@@ -80,13 +122,10 @@ export default function Home() {
     switch (severity) {
       case "P1":
         return "bg-red-500/10 text-red-400 border-red-500/20";
-
       case "P2":
         return "bg-orange-500/10 text-orange-400 border-orange-500/20";
-
       case "P3":
         return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
-
       default:
         return "bg-slate-500/10 text-slate-400 border-slate-500/20";
     }
@@ -96,13 +135,10 @@ export default function Home() {
     switch (claimLevel) {
       case "confirmed":
         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-
       case "strongly_supported":
         return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-
       case "likely":
         return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
-
       default:
         return "bg-slate-500/10 text-slate-400 border-slate-500/20";
     }
@@ -111,30 +147,19 @@ export default function Home() {
   const formatClaimLevel = (claimLevel: string) => {
     return claimLevel
       .replaceAll("_", " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  };
-
-  const formatSource = (source: string) => {
-    return source
-      .replace(/^search_/, "")
-      .replaceAll("_", " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+      .replace(/\w/g, (letter) => letter.toUpperCase());
   };
 
   const getToolLabel = (tool: string) => {
     switch (tool) {
       case "search_logs":
         return "Application logs checked";
-
       case "query_metrics":
         return "Service metrics checked";
-
       case "search_deployments":
         return "Deployment history checked";
-
       case "search_knowledge":
         return "Knowledge base searched";
-
       default:
         return tool;
     }
@@ -148,13 +173,10 @@ export default function Home() {
     switch (investigationStatus) {
       case "collecting_evidence":
         return "Collecting evidence...";
-
       case "analyzing_evidence":
         return "Analyzing evidence...";
-
       case "completed":
         return "Completed";
-
       default:
         return "Starting investigation...";
     }
@@ -174,7 +196,6 @@ export default function Home() {
     setInvestigationStatus("Starting investigation...");
     setError(null);
 
-    // Start each investigation with a clean report and clean tool activity.
     setReports((current) => {
       const next = { ...current };
       delete next[incidentId];
@@ -186,7 +207,6 @@ export default function Home() {
       [incidentId]: [],
     }));
 
-    // Open the investigation panel immediately.
     setExpandedReports((current) => ({
       ...current,
       [incidentId]: true,
@@ -219,7 +239,6 @@ export default function Home() {
         buffer += decoder.decode(value, { stream: true });
 
         const lines = buffer.split("\n");
-
         buffer = lines.pop() ?? "";
 
         for (const line of lines) {
@@ -251,6 +270,22 @@ export default function Home() {
               ...current,
               [incidentId]: true,
             }));
+
+            try {
+              const historyResponse = await fetch(
+                `http://127.0.0.1:8000/api/v1/investigations/${incidentId}/history`
+              );
+
+              if (historyResponse.ok) {
+                const historyData = await historyResponse.json();
+                setInvestigationHistory(historyData.investigations ?? []);
+              }
+            } catch (historyError) {
+              console.error(
+                "Failed to refresh investigation history:",
+                historyError
+              );
+            }
           }
         }
       }
@@ -270,7 +305,6 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-slate-100">
       <div className="mx-auto max-w-6xl">
-        {/* Header */}
         <header className="mb-10">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
@@ -289,7 +323,6 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Production Incidents */}
         <section>
           <div className="mb-5">
             <h2 className="text-xl font-semibold text-slate-100">
@@ -323,12 +356,15 @@ export default function Home() {
               const tools =
                 investigationTools[incident.incident_id] ?? [];
 
+              const history = investigationHistory.filter(
+                (item) => item.incident_id === incident.incident_id
+              );
+
               return (
                 <article
                   key={incident.incident_id}
                   className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70 shadow-lg shadow-black/10"
                 >
-                  {/* Incident */}
                   <div className="p-5">
                     <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
                       <div className="min-w-0">
@@ -414,10 +450,8 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Investigation Report / Live Investigation */}
                   {(isInvestigating || (hasReport && isExpanded)) && (
                     <div className="border-t border-slate-800 bg-slate-950/40 px-5 py-6">
-                      {/* Report Header */}
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
@@ -449,7 +483,6 @@ export default function Home() {
                         </span>
                       </div>
 
-                      {/* Investigation Activity */}
                       {(isInvestigating || tools.length > 0) && (
                         <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
                           {isInvestigating && (
@@ -505,10 +538,8 @@ export default function Home() {
                         </div>
                       )}
 
-                      {/* Completed Report */}
                       {report && (
                         <div className="mt-6 space-y-8">
-                          {/* Summary */}
                           <section>
                             <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
                               Summary
@@ -521,7 +552,6 @@ export default function Home() {
                             </div>
                           </section>
 
-                          {/* Root Cause */}
                           <section>
                             <div className="mb-3 flex flex-wrap items-center gap-2">
                               <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -557,7 +587,6 @@ export default function Home() {
                             </div>
                           </section>
 
-                          {/* Evidence */}
                           <section>
                             <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
                               Evidence
@@ -616,7 +645,6 @@ export default function Home() {
                             </div>
                           </section>
 
-                          {/* Timeline */}
                           {report.timeline.length > 0 && (
                             <section>
                               <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -638,7 +666,6 @@ export default function Home() {
                             </section>
                           )}
 
-                          {/* Recommendations */}
                           {report.recommendations.length > 0 && (
                             <section>
                               <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -666,7 +693,6 @@ export default function Home() {
                             </section>
                           )}
 
-                          {/* Uncertainties */}
                           {report.uncertainties.length > 0 && (
                             <section>
                               <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -686,6 +712,69 @@ export default function Home() {
                                     </div>
                                   )
                                 )}
+                              </div>
+                            </section>
+                          )}
+
+                          {history.length > 0 && (
+                            <section>
+                              <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                                Investigation History
+                              </h4>
+
+                              <div className="space-y-3">
+                                {history.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className="rounded-xl border border-slate-800 bg-slate-900/60 p-4"
+                                  >
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span className="rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-slate-300">
+                                          Investigation #{item.id}
+                                        </span>
+
+                                        <span
+                                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getClaimLevelClasses(
+                                            item.claim_level ?? ""
+                                          )}`}
+                                        >
+                                          {item.claim_level
+                                            ? formatClaimLevel(
+                                                item.claim_level
+                                              )
+                                            : "Unknown"}
+                                        </span>
+
+                                        {item.confidence !== null && (
+                                          <span className="text-xs text-slate-500">
+                                            {Math.round(
+                                              item.confidence * 100
+                                            )}
+                                            % confidence
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <span className="text-xs text-slate-500">
+                                        {new Date(
+                                          item.started_at
+                                        ).toLocaleString()}
+                                      </span>
+                                    </div>
+
+                                    {item.summary && (
+                                      <p className="mt-3 text-sm leading-6 text-slate-400">
+                                        {item.summary}
+                                      </p>
+                                    )}
+
+                                    <p className="mt-2 text-xs text-slate-600">
+                                      {item.evidence.length} evidence item
+                                      {item.evidence.length === 1 ? "" : "s"}
+                                    </p>
+                                  </div>
+                                ))}
                               </div>
                             </section>
                           )}

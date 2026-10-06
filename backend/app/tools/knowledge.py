@@ -1,8 +1,7 @@
+from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchValue
-
 from langchain_core.tools import tool
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_qdrant import QdrantVectorStore
 
 from app.core.config import GOOGLE_API_KEY
 
@@ -28,35 +27,39 @@ def search_knowledge(
         google_api_key=GOOGLE_API_KEY,
     )
 
-    vector_store = QdrantVectorStore.from_existing_collection(
-        embedding=embeddings,
-        collection_name=COLLECTION_NAME,
+    query_vector = embeddings.embed_query(query)
+
+    client = QdrantClient(
         url=QDRANT_URL,
+        timeout=30,
     )
 
-    results = vector_store.similarity_search(
-        query,
-        k=limit,
-        filter=Filter(
-            should=[
-                FieldCondition(
-                    key="metadata.service",
-                    match=MatchValue(value=service),
-                ),
-                FieldCondition(
-                    key="metadata.service",
-                    match=MatchValue(value="global"),
-                ),
-            ]
-        ),
+    service_filter = Filter(
+        should=[
+            FieldCondition(
+                key="metadata.service",
+                match=MatchValue(value=service),
+            ),
+            FieldCondition(
+                key="metadata.service",
+                match=MatchValue(value="global"),
+            ),
+        ]
+    )
+
+    results = client.query_points(
+        collection_name=COLLECTION_NAME,
+        query=query_vector,
+        query_filter=service_filter,
+        limit=limit,
     )
 
     return [
         {
-            "source": result.metadata.get("source"),
-            "service": result.metadata.get("service"),
-            "chunk_index": result.metadata.get("chunk_index"),
-            "content": result.page_content,
+            "source": point.payload.get("metadata", {}).get("source"),
+            "service": point.payload.get("metadata", {}).get("service"),
+            "chunk_index": point.payload.get("metadata", {}).get("chunk_index"),
+            "content": point.payload.get("page_content", ""),
         }
-        for result in results
+        for point in results.points
     ]

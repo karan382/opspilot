@@ -6,27 +6,99 @@ from app.agents.graph import graph
 from app.models.incident import Incident
 from app.models.api import InvestigationResponse
 
-import json
-from pathlib import Path
+from sqlalchemy.orm import Session
 
+from app.core.database import SessionLocal
+
+from datetime import datetime, timezone
+
+from app.models.database import IncidentDB, InvestigationRunDB, InvestigationEvidenceDB
+
+import json
 
 router = APIRouter(prefix="/api/v1/investigations", tags=["investigations"])
 
-INCIDENTS_FILE = Path("data/incidents.json")
-
 
 def load_incident(incident_id: str) -> Incident | None:
-    if not INCIDENTS_FILE.exists():
-        return None
+    with SessionLocal() as session:
+        incident = session.get(IncidentDB, incident_id)
 
-    with INCIDENTS_FILE.open() as file:
-        incidents = json.load(file)
+        if incident is None:
+            return None
 
-    for incident_data in incidents:
-        if incident_data["incident_id"] == incident_id:
-            return Incident(**incident_data)
+        return Incident(
+            incident_id=incident.incident_id,
+            service=incident.service,
+            severity=incident.severity,
+            title=incident.title,
+            description=incident.description,
+            started_at=incident.started_at,
+            resolved_at=incident.resolved_at,
+            symptoms=incident.symptoms,
+        )
 
-    return None
+
+@router.get("/{incident_id}/history")
+async def investigation_history(incident_id: str):
+    with SessionLocal() as session:
+        incident = session.get(IncidentDB, incident_id)
+
+        if incident is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Incident not found",
+            )
+
+        investigations = (
+            session.query(InvestigationRunDB)
+            .filter(InvestigationRunDB.incident_id == incident_id)
+            .order_by(InvestigationRunDB.started_at.desc())
+            .all()
+        )
+
+        history = []
+
+        for investigation in investigations:
+            evidence = (
+                session.query(InvestigationEvidenceDB)
+                .filter(
+                    InvestigationEvidenceDB.investigation_id
+                    == investigation.id
+                )
+                .order_by(InvestigationEvidenceDB.id)
+                .all()
+            )
+
+            history.append(
+                {
+                    "id": investigation.id,
+                    "incident_id": investigation.incident_id,
+                    "status": investigation.status,
+                    "started_at": investigation.started_at,
+                    "completed_at": investigation.completed_at,
+                    "summary": investigation.summary,
+                    "confidence": investigation.confidence,
+                    "claim_level": investigation.claim_level,
+                    "evidence": [
+                        {
+                            "id": item.id,
+                            "source": item.source,
+                            "source_type": item.source_type,
+                            "service": item.service,
+                            "timestamp": item.timestamp,
+                            "observation": item.observation,
+                            "description": item.description,
+                            "chunk_index": item.chunk_index,
+                        }
+                        for item in evidence
+                    ],
+                }
+            )
+
+        return {
+            "incident_id": incident_id,
+            "investigations": history,
+        }
 
 
 def investigation_event_stream(initial_state):
@@ -136,6 +208,8 @@ Symptoms: {", ".join(incident.symptoms)}
         "incident_id": incident.incident_id,
     }
 
+    started_at = datetime.now(timezone.utc)
+
     try:
         result = graph.invoke(initial_state, config={"recursion_limit": 20})
     except Exception:
@@ -144,7 +218,40 @@ Symptoms: {", ".join(incident.symptoms)}
             detail="The AI investigation service is temporarily unavailable. Please try again shortly.",
         )
 
+    report = result["report"]
+    completed_at = datetime.now(timezone.utc)
+
+    with SessionLocal() as session:
+        investigation = InvestigationRunDB(
+            incident_id=incident.incident_id,
+            status="completed",
+            started_at=started_at,
+            completed_at=completed_at,
+            summary=report.summary,
+            confidence=report.root_cause.confidence,
+            claim_level=report.root_cause.claim_level,
+        )
+
+        session.add(investigation)
+        session.flush()
+
+        for evidence in report.evidence:
+            session.add(
+                InvestigationEvidenceDB(
+                    investigation_id=investigation.id,
+                    source=evidence.source,
+                    source_type=evidence.source_type,
+                    service=evidence.service,
+                    timestamp=evidence.timestamp,
+                    observation=evidence.observation,
+                    description=evidence.description,
+                    chunk_index=evidence.chunk_index,
+                )
+            )
+
+        session.commit()
+    
     return {
-        **result["report"].model_dump(mode="json"),
+        **report.model_dump(mode="json"),
         "status": "completed",
     }
