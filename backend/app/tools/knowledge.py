@@ -3,11 +3,9 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue
 from langchain_core.tools import tool
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-from app.core.config import GOOGLE_API_KEY
-
+from app.core.config import GOOGLE_API_KEY, QDRANT_URL
 
 COLLECTION_NAME = "opspilot_knowledge"
-QDRANT_URL = "http://localhost:6333"
 
 
 @tool

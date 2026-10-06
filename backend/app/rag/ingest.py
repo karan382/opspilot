@@ -5,12 +5,11 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 
-from app.core.config import GOOGLE_API_KEY
+from app.core.config import GOOGLE_API_KEY, QDRANT_URL
 
 
 KNOWLEDGE_DIR = Path("data/knowledge")
 COLLECTION_NAME = "opspilot_knowledge"
-QDRANT_URL = "http://localhost:6333"
 
 
 def load_documents() -> list[Document]:

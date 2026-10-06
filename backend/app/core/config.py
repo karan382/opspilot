@@ -14,3 +14,13 @@ DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql+psycopg://opspilot:opspilot_dev@localhost:5432/opspilot",
 )
+
+QDRANT_URL = os.getenv(
+    "QDRANT_URL",
+    "http://localhost:6333",
+)
+
+CORS_ORIGINS = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:3000",
+).split(",")

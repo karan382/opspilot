@@ -1,11 +1,10 @@
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 
-from app.core.config import GOOGLE_API_KEY
+from app.core.config import GOOGLE_API_KEY, QDRANT_URL
 
 
 COLLECTION_NAME = "opspilot_knowledge"
-QDRANT_URL = "http://localhost:6333"
 
 
 def search_knowledge(query: str, limit: int = 3):
