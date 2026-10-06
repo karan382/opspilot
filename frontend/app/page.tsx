@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 interface Incident {
   incident_id: string;
   service: string;
@@ -75,7 +77,7 @@ export default function Home() {
     async function fetchIncidents() {
       try {
         const response = await fetch(
-          "http://127.0.0.1:8000/api/v1/incidents"
+          `${API_BASE_URL}/api/v1/incidents`
         );
 
         if (!response.ok) {
@@ -89,7 +91,7 @@ export default function Home() {
           data.map(async (incident: Incident) => {
             try {
               const historyResponse = await fetch(
-                `http://127.0.0.1:8000/api/v1/investigations/${incident.incident_id}/history`
+                `${API_BASE_URL}/api/v1/investigations/${incident.incident_id}/history`
               );
 
               if (!historyResponse.ok) {
@@ -214,7 +216,7 @@ export default function Home() {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/v1/investigations/${incidentId}/stream`,
+        `${API_BASE_URL}/api/v1/investigations/${incidentId}/stream`,
         {
           method: "POST",
         }
@@ -273,7 +275,7 @@ export default function Home() {
 
             try {
               const historyResponse = await fetch(
-                `http://127.0.0.1:8000/api/v1/investigations/${incidentId}/history`
+                `${API_BASE_URL}/api/v1/investigations/${incidentId}/history`
               );
 
               if (historyResponse.ok) {
