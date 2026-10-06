@@ -3,7 +3,7 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue
 from langchain_core.tools import tool
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-from app.core.config import GOOGLE_API_KEY, QDRANT_URL
+from app.core.config import GOOGLE_API_KEY, QDRANT_URL, QDRANT_API_KEY
 
 COLLECTION_NAME = "opspilot_knowledge"
 
@@ -29,6 +29,7 @@ def search_knowledge(
 
     client = QdrantClient(
         url=QDRANT_URL,
+        api_key=QDRANT_API_KEY,
         timeout=30,
     )
 

@@ -20,6 +20,8 @@ QDRANT_URL = os.getenv(
     "http://localhost:6333",
 )
 
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+
 CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS",
     "http://localhost:3000",
