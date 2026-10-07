@@ -72,9 +72,15 @@ export default function Home() {
     Record<string, boolean>
   >({});
   const [error, setError] = useState<string | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [showStartupBanner, setShowStartupBanner] = useState(false);
 
   useEffect(() => {
     async function fetchIncidents() {
+      const bannerTimer = setTimeout(() => {
+        setShowStartupBanner(true);
+      }, 1000);
+
       try {
         const response = await fetch(
           `${API_BASE_URL}/api/v1/incidents`
@@ -114,6 +120,10 @@ export default function Home() {
       } catch (error) {
         console.error("Failed to fetch incidents:", error);
         setError("Unable to load production incidents.");
+      } finally {
+        clearTimeout(bannerTimer);
+        setInitialLoading(false);
+        setShowStartupBanner(false);
       }
     }
 
@@ -325,6 +335,30 @@ export default function Home() {
           </div>
         </header>
 
+        {showStartupBanner && !error && investigating === null && (
+          <div className="mb-5 flex items-center gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4">
+            <span className="text-yellow-400">⚠</span>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-yellow-300">
+                OpsPilot is starting up
+              </p>
+              <p className="mt-1 text-xs leading-5 text-yellow-200/60">
+                The backend may take a few extra seconds to become available.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowStartupBanner(false)}
+              className="text-sm text-yellow-200/50 transition hover:text-yellow-200"
+              aria-label="Dismiss startup message"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         <section>
           <div className="mb-5">
             <h2 className="text-xl font-semibold text-slate-100">
@@ -338,456 +372,470 @@ export default function Home() {
           </div>
 
           {error && investigating === null && (
-            <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-              <p className="text-sm text-red-400">{error}</p>
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+              <span className="mt-0.5 text-red-400">✕</span>
+
+              <p className="flex-1 text-sm text-red-400">{error}</p>
             </div>
           )}
 
-          <div className="space-y-4">
-            {incidents.map((incident) => {
-              const report = reports[incident.incident_id];
+          {initialLoading ? (
+            <div className="flex min-h-[300px] items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-blue-400" />
 
-              const isInvestigating =
-                investigating === incident.incident_id;
+                <p className="text-sm text-slate-500">
+                  Loading incidents...
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {incidents.map((incident) => {
+                const report = reports[incident.incident_id];
 
-              const hasReport = Boolean(report);
+                const isInvestigating =
+                  investigating === incident.incident_id;
 
-              const isExpanded =
-                expandedReports[incident.incident_id] ?? false;
+                const hasReport = Boolean(report);
 
-              const tools =
-                investigationTools[incident.incident_id] ?? [];
+                const isExpanded =
+                  expandedReports[incident.incident_id] ?? false;
 
-              const history = investigationHistory.filter(
-                (item) => item.incident_id === incident.incident_id
-              );
+                const tools =
+                  investigationTools[incident.incident_id] ?? [];
 
-              return (
-                <article
-                  key={incident.incident_id}
-                  className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70 shadow-lg shadow-black/10"
-                >
-                  <div className="p-5">
-                    <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-                      <div className="min-w-0">
-                        <div className="mb-3 flex flex-wrap items-center gap-2">
-                          <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
-                            {incident.incident_id}
-                          </span>
+                const history = investigationHistory.filter(
+                  (item) => item.incident_id === incident.incident_id
+                );
 
-                          <span
-                            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getSeverityClasses(
-                              incident.severity
-                            )}`}
-                          >
-                            {incident.severity}
-                          </span>
-
-                          <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-400">
-                            {incident.service}
-                          </span>
-
-                          <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400">
-                            {incident.resolved_at ? "Resolved" : "Open"}
-                          </span>
-                        </div>
-
-                        <h3 className="text-base font-semibold text-slate-100">
-                          {incident.title}
-                        </h3>
-
-                        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-                          {incident.description}
-                        </p>
-
-                        {incident.symptoms.length > 0 && (
-                          <div className="mt-4">
-                            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                              Symptoms
-                            </p>
-
-                            <div className="flex flex-wrap gap-2">
-                              {incident.symptoms.map((symptom) => (
-                                <span
-                                  key={symptom}
-                                  className="rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-1.5 text-xs text-slate-400"
-                                >
-                                  {symptom}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex shrink-0 items-center gap-2">
-                        {hasReport && !isInvestigating && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleReport(incident.incident_id)
-                            }
-                            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700 hover:text-white"
-                          >
-                            {isExpanded ? "Hide Report" : "View Report"}
-                            <span className="ml-2">
-                              {isExpanded ? "↑" : "↓"}
-                            </span>
-                          </button>
-                        )}
-
-                        <button
-                          type="button"
-                          disabled={isInvestigating}
-                          onClick={() => investigateIncident(incident)}
-                          className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {isInvestigating
-                            ? "Investigating..."
-                            : hasReport
-                              ? "Investigate Again"
-                              : "Investigate"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {(isInvestigating || (hasReport && isExpanded)) && (
-                    <div className="border-t border-slate-800 bg-slate-950/40 px-5 py-6">
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-lg font-semibold text-slate-100">
-                              Investigation Report
-                            </h3>
-
-                            <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-400">
+                return (
+                  <article
+                    key={incident.incident_id}
+                    className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70 shadow-lg shadow-black/10"
+                  >
+                    <div className="p-5">
+                      <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                        <div className="min-w-0">
+                          <div className="mb-3 flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
                               {incident.incident_id}
                             </span>
+
+                            <span
+                              className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getSeverityClasses(
+                                incident.severity
+                              )}`}
+                            >
+                              {incident.severity}
+                            </span>
+
+                            <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-400">
+                              {incident.service}
+                            </span>
+
+                            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400">
+                              {incident.resolved_at ? "Resolved" : "Open"}
+                            </span>
                           </div>
 
-                          <p className="mt-1 text-sm text-slate-500">
-                            AI-generated incident investigation based on
-                            collected evidence
+                          <h3 className="text-base font-semibold text-slate-100">
+                            {incident.title}
+                          </h3>
+
+                          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                            {incident.description}
                           </p>
-                        </div>
 
-                        <span
-                          className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                            isInvestigating
-                              ? "border border-blue-500/20 bg-blue-500/10 text-blue-400"
-                              : "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                          }`}
-                        >
-                          {getInvestigationStatusText(
-                            incident.incident_id
-                          ) ?? "Completed"}
-                        </span>
-                      </div>
-
-                      {(isInvestigating || tools.length > 0) && (
-                        <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-                          {isInvestigating && (
-                            <div className="flex items-center gap-3">
-                              <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-blue-400" />
-
-                              <p className="text-sm font-medium text-slate-300">
-                                {investigationStatus ===
-                                "collecting_evidence"
-                                  ? "OpsPilot is collecting logs, metrics, deployments, and relevant knowledge..."
-                                  : investigationStatus ===
-                                      "analyzing_evidence"
-                                    ? "OpsPilot is analyzing the collected evidence and determining the likely root cause..."
-                                    : "OpsPilot is starting the investigation..."}
-                              </p>
-                            </div>
-                          )}
-
-                          {tools.length > 0 && (
-                            <div
-                              className={
-                                isInvestigating
-                                  ? "mt-4 space-y-2"
-                                  : "space-y-2"
-                              }
-                            >
+                          {incident.symptoms.length > 0 && (
+                            <div className="mt-4">
                               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                                Investigation Activity
+                                Symptoms
                               </p>
 
-                              {tools.map((tool, index) => (
-                                <div
-                                  key={`${tool}-${index}`}
-                                  className="flex items-center gap-2 text-sm text-slate-400"
-                                >
-                                  <span className="text-emerald-400">
-                                    ✓
+                              <div className="flex flex-wrap gap-2">
+                                {incident.symptoms.map((symptom) => (
+                                  <span
+                                    key={symptom}
+                                    className="rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-1.5 text-xs text-slate-400"
+                                  >
+                                    {symptom}
                                   </span>
-
-                                  <span>{getToolLabel(tool)}</span>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
-                          )}
-
-                          {isInvestigating && (
-                            <p className="mt-3 text-xs leading-5 text-slate-500">
-                              The report will appear here once the
-                              investigation has collected enough evidence and
-                              completed its analysis.
-                            </p>
                           )}
                         </div>
-                      )}
 
-                      {report && (
-                        <div className="mt-6 space-y-8">
-                          <section>
-                            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                              Summary
-                            </h4>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {hasReport && !isInvestigating && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleReport(incident.incident_id)
+                              }
+                              className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700 hover:text-white"
+                            >
+                              {isExpanded ? "Hide Report" : "View Report"}
+                              <span className="ml-2">
+                                {isExpanded ? "↑" : "↓"}
+                              </span>
+                            </button>
+                          )}
 
-                            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-                              <p className="text-sm leading-7 text-slate-300">
-                                {report.summary}
-                              </p>
+                          <button
+                            type="button"
+                            disabled={isInvestigating}
+                            onClick={() => investigateIncident(incident)}
+                            className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isInvestigating
+                              ? "Investigating..."
+                              : hasReport
+                                ? "Investigate Again"
+                                : "Investigate"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {(isInvestigating || (hasReport && isExpanded)) && (
+                      <div className="border-t border-slate-800 bg-slate-950/40 px-5 py-6">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-lg font-semibold text-slate-100">
+                                Investigation Report
+                              </h3>
+
+                              <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs text-slate-400">
+                                {incident.incident_id}
+                              </span>
                             </div>
-                          </section>
 
-                          <section>
-                            <div className="mb-3 flex flex-wrap items-center gap-2">
-                              <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                                Root Cause
-                              </h4>
+                            <p className="mt-1 text-sm text-slate-500">
+                              AI-generated incident investigation based on
+                              collected evidence
+                            </p>
+                          </div>
 
-                              <span
-                                className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getClaimLevelClasses(
-                                  report.root_cause.claim_level
-                                )}`}
+                          <span
+                            className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                              isInvestigating
+                                ? "border border-blue-500/20 bg-blue-500/10 text-blue-400"
+                                : "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                            }`}
+                          >
+                            {getInvestigationStatusText(
+                              incident.incident_id
+                            ) ?? "Completed"}
+                          </span>
+                        </div>
+
+                        {(isInvestigating || tools.length > 0) && (
+                          <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+                            {isInvestigating && (
+                              <div className="flex items-center gap-3">
+                                <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-blue-400" />
+
+                                <p className="text-sm font-medium text-slate-300">
+                                  {investigationStatus ===
+                                  "collecting_evidence"
+                                    ? "OpsPilot is collecting logs, metrics, deployments, and relevant knowledge..."
+                                    : investigationStatus ===
+                                        "analyzing_evidence"
+                                      ? "OpsPilot is analyzing the collected evidence and determining the likely root cause..."
+                                      : "OpsPilot is starting the investigation..."}
+                                </p>
+                              </div>
+                            )}
+
+                            {tools.length > 0 && (
+                              <div
+                                className={
+                                  isInvestigating
+                                    ? "mt-4 space-y-2"
+                                    : "space-y-2"
+                                }
                               >
-                                {formatClaimLevel(
-                                  report.root_cause.claim_level
-                                )}
-                              </span>
+                                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                                  Investigation Activity
+                                </p>
 
-                              <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
-                                {Math.round(
-                                  report.root_cause.confidence * 100
-                                )}
-                                % confidence
-                              </span>
-                            </div>
-
-                            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-                              <h5 className="text-sm font-semibold text-slate-200">
-                                {report.root_cause.hypothesis}
-                              </h5>
-
-                              <p className="mt-3 text-sm leading-7 text-slate-400">
-                                {report.root_cause.reasoning}
-                              </p>
-                            </div>
-                          </section>
-
-                          <section>
-                            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                              Evidence
-                            </h4>
-
-                            <div className="space-y-3">
-                              {report.evidence.map((item, index) => (
-                                <div
-                                  key={`${item.source}-${index}`}
-                                  className="rounded-xl border border-slate-800 bg-slate-900/60 p-5"
-                                >
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className="rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-slate-300">
-                                        {item.source_type}
-                                      </span>
-
-                                      <span className="text-xs text-slate-500">
-                                        {item.source}
-                                      </span>
-                                    </div>
-
-                                    {item.timestamp && (
-                                      <span className="text-xs text-slate-500">
-                                        {item.timestamp}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  <div className="mt-3 flex flex-wrap gap-2">
-                                    {item.service && (
-                                      <span className="rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-400">
-                                        Service: {item.service}
-                                      </span>
-                                    )}
-
-                                    {item.chunk_index !== null &&
-                                      item.chunk_index !== undefined && (
-                                        <span className="rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-400">
-                                          Knowledge chunk: {item.chunk_index}
-                                        </span>
-                                      )}
-                                  </div>
-
-                                  {item.observation && (
-                                    <p className="mt-3 text-sm font-medium leading-6 text-slate-300">
-                                      {item.observation}
-                                    </p>
-                                  )}
-
-                                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                                    {item.description}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </section>
-
-                          {report.timeline.length > 0 && (
-                            <section>
-                              <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                                Timeline
-                              </h4>
-
-                              <div className="space-y-2">
-                                {report.timeline.map((event, index) => (
+                                {tools.map((tool, index) => (
                                   <div
-                                    key={`${event}-${index}`}
-                                    className="rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3"
+                                    key={`${tool}-${index}`}
+                                    className="flex items-center gap-2 text-sm text-slate-400"
                                   >
-                                    <p className="text-sm leading-6 text-slate-400">
-                                      {event}
-                                    </p>
+                                    <span className="text-emerald-400">
+                                      ✓
+                                    </span>
+
+                                    <span>{getToolLabel(tool)}</span>
                                   </div>
                                 ))}
                               </div>
-                            </section>
-                          )}
+                            )}
 
-                          {report.recommendations.length > 0 && (
+                            {isInvestigating && (
+                              <p className="mt-3 text-xs leading-5 text-slate-500">
+                                The report will appear here once the
+                                investigation has collected enough evidence and
+                                completed its analysis.
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {report && (
+                          <div className="mt-6 space-y-8">
                             <section>
                               <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                                Recommendations
+                                Summary
                               </h4>
 
-                              <div className="space-y-2">
-                                {report.recommendations.map(
-                                  (recommendation, index) => (
-                                    <div
-                                      key={`${recommendation}-${index}`}
-                                      className="flex gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4"
-                                    >
-                                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-xs font-semibold text-blue-400">
-                                        {index + 1}
-                                      </span>
-
-                                      <p className="text-sm leading-6 text-slate-400">
-                                        {recommendation}
-                                      </p>
-                                    </div>
-                                  )
-                                )}
+                              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+                                <p className="text-sm leading-7 text-slate-300">
+                                  {report.summary}
+                                </p>
                               </div>
                             </section>
-                          )}
 
-                          {report.uncertainties.length > 0 && (
                             <section>
-                              <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                                Uncertainties
-                              </h4>
+                              <div className="mb-3 flex flex-wrap items-center gap-2">
+                                <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                                  Root Cause
+                                </h4>
 
-                              <div className="space-y-2">
-                                {report.uncertainties.map(
-                                  (uncertainty, index) => (
-                                    <div
-                                      key={`${uncertainty}-${index}`}
-                                      className="rounded-xl border border-yellow-500/10 bg-yellow-500/5 p-4"
-                                    >
-                                      <p className="text-sm leading-6 text-yellow-200/70">
-                                        {uncertainty}
-                                      </p>
-                                    </div>
-                                  )
-                                )}
+                                <span
+                                  className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getClaimLevelClasses(
+                                    report.root_cause.claim_level
+                                  )}`}
+                                >
+                                  {formatClaimLevel(
+                                    report.root_cause.claim_level
+                                  )}
+                                </span>
+
+                                <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
+                                  {Math.round(
+                                    report.root_cause.confidence * 100
+                                  )}
+                                  % confidence
+                                </span>
+                              </div>
+
+                              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+                                <h5 className="text-sm font-semibold text-slate-200">
+                                  {report.root_cause.hypothesis}
+                                </h5>
+
+                                <p className="mt-3 text-sm leading-7 text-slate-400">
+                                  {report.root_cause.reasoning}
+                                </p>
                               </div>
                             </section>
-                          )}
 
-                          {history.length > 0 && (
                             <section>
                               <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                                Investigation History
+                                Evidence
                               </h4>
 
                               <div className="space-y-3">
-                                {history.map((item) => (
+                                {report.evidence.map((item, index) => (
                                   <div
-                                    key={item.id}
-                                    className="rounded-xl border border-slate-800 bg-slate-900/60 p-4"
+                                    key={`${item.source}-${index}`}
+                                    className="rounded-xl border border-slate-800 bg-slate-900/60 p-5"
                                   >
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                       <div className="flex flex-wrap items-center gap-2">
                                         <span className="rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-slate-300">
-                                          Investigation #{item.id}
+                                          {item.source_type}
                                         </span>
 
-                                        <span
-                                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getClaimLevelClasses(
-                                            item.claim_level ?? ""
-                                          )}`}
-                                        >
-                                          {item.claim_level
-                                            ? formatClaimLevel(
-                                                item.claim_level
-                                              )
-                                            : "Unknown"}
+                                        <span className="text-xs text-slate-500">
+                                          {item.source}
                                         </span>
-
-                                        {item.confidence !== null && (
-                                          <span className="text-xs text-slate-500">
-                                            {Math.round(
-                                              item.confidence * 100
-                                            )}
-                                            % confidence
-                                          </span>
-                                        )}
                                       </div>
 
-                                      <span className="text-xs text-slate-500">
-                                        {new Date(
-                                          item.started_at
-                                        ).toLocaleString()}
-                                      </span>
+                                      {item.timestamp && (
+                                        <span className="text-xs text-slate-500">
+                                          {item.timestamp}
+                                        </span>
+                                      )}
                                     </div>
 
-                                    {item.summary && (
-                                      <p className="mt-3 text-sm leading-6 text-slate-400">
-                                        {item.summary}
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      {item.service && (
+                                        <span className="rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-400">
+                                          Service: {item.service}
+                                        </span>
+                                      )}
+
+                                      {item.chunk_index !== null &&
+                                        item.chunk_index !== undefined && (
+                                          <span className="rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-400">
+                                            Knowledge chunk: {item.chunk_index}
+                                          </span>
+                                        )}
+                                    </div>
+
+                                    {item.observation && (
+                                      <p className="mt-3 text-sm font-medium leading-6 text-slate-300">
+                                        {item.observation}
                                       </p>
                                     )}
 
-                                    <p className="mt-2 text-xs text-slate-600">
-                                      {item.evidence.length} evidence item
-                                      {item.evidence.length === 1 ? "" : "s"}
+                                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                                      {item.description}
                                     </p>
                                   </div>
                                 ))}
                               </div>
                             </section>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </article>
-              );
-            })}
-          </div>
+
+                            {report.timeline.length > 0 && (
+                              <section>
+                                <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                                  Timeline
+                                </h4>
+
+                                <div className="space-y-2">
+                                  {report.timeline.map((event, index) => (
+                                    <div
+                                      key={`${event}-${index}`}
+                                      className="rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3"
+                                    >
+                                      <p className="text-sm leading-6 text-slate-400">
+                                        {event}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </section>
+                            )}
+
+                            {report.recommendations.length > 0 && (
+                              <section>
+                                <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                                  Recommendations
+                                </h4>
+
+                                <div className="space-y-2">
+                                  {report.recommendations.map(
+                                    (recommendation, index) => (
+                                      <div
+                                        key={`${recommendation}-${index}`}
+                                        className="flex gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4"
+                                      >
+                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-xs font-semibold text-blue-400">
+                                          {index + 1}
+                                        </span>
+
+                                        <p className="text-sm leading-6 text-slate-400">
+                                          {recommendation}
+                                        </p>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              </section>
+                            )}
+
+                            {report.uncertainties.length > 0 && (
+                              <section>
+                                <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                                  Uncertainties
+                                </h4>
+
+                                <div className="space-y-2">
+                                  {report.uncertainties.map(
+                                    (uncertainty, index) => (
+                                      <div
+                                        key={`${uncertainty}-${index}`}
+                                        className="rounded-xl border border-yellow-500/10 bg-yellow-500/5 p-4"
+                                      >
+                                        <p className="text-sm leading-6 text-yellow-200/70">
+                                          {uncertainty}
+                                        </p>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              </section>
+                            )}
+
+                            {history.length > 0 && (
+                              <section>
+                                <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                                  Investigation History
+                                </h4>
+
+                                <div className="space-y-3">
+                                  {history.map((item) => (
+                                    <div
+                                      key={item.id}
+                                      className="rounded-xl border border-slate-800 bg-slate-900/60 p-4"
+                                    >
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className="rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-slate-300">
+                                            Investigation #{item.id}
+                                          </span>
+
+                                          <span
+                                            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getClaimLevelClasses(
+                                              item.claim_level ?? ""
+                                            )}`}
+                                          >
+                                            {item.claim_level
+                                              ? formatClaimLevel(
+                                                  item.claim_level
+                                                )
+                                              : "Unknown"}
+                                          </span>
+
+                                          {item.confidence !== null && (
+                                            <span className="text-xs text-slate-500">
+                                              {Math.round(
+                                                item.confidence * 100
+                                              )}
+                                              % confidence
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        <span className="text-xs text-slate-500">
+                                          {new Date(
+                                            item.started_at
+                                          ).toLocaleString()}
+                                        </span>
+                                      </div>
+
+                                      {item.summary && (
+                                        <p className="mt-3 text-sm leading-6 text-slate-400">
+                                          {item.summary}
+                                        </p>
+                                      )}
+
+                                      <p className="mt-2 text-xs text-slate-600">
+                                        {item.evidence.length} evidence item
+                                        {item.evidence.length === 1 ? "" : "s"}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </section>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
     </main>
