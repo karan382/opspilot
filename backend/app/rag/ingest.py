@@ -5,7 +5,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 
-from app.core.config import GOOGLE_API_KEY, QDRANT_URL
+from app.core.config import GOOGLE_API_KEY, QDRANT_URL, QDRANT_API_KEY
 
 
 KNOWLEDGE_DIR = Path("data/knowledge")
@@ -63,6 +63,7 @@ def ingest_documents() -> None:
         documents=chunks,
         embedding=embeddings,
         url=QDRANT_URL,
+        api_key=QDRANT_API_KEY,
         collection_name=COLLECTION_NAME,
         force_recreate=True,
     )
